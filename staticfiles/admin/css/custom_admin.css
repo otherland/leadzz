@@ -117,3 +117,19 @@
 .min-w-sidebar {
     min-width: 12rem !important;
 }
+
+@media (min-width: 1280px) {
+    .xl\:left-72 {
+        left: 12rem !important;
+    }
+}
+
+.simplebar-content-wrapper {
+    padding: 1rem !important;
+  }
+
+@media (min-width: 1280px) {
+    .xl\:ml-72 {
+        margin-left: 12rem !important;
+    }
+}

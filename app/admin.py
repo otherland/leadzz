@@ -208,6 +208,12 @@ class BigQueryContactAdmin(ModelAdmin):
         'description_display',
     )
 
+    actions = ['export_selected_contacts']
+
+    def export_selected_contacts(self, request, queryset):
+        selected_ids = [obj.id for obj in queryset]
+        self.message_user(request, f"Selected {len(selected_ids)} contacts.")
+    export_selected_contacts.short_description = "Export selected contacts"
 
     # For model fields, use custom labels
     def get_list_display(self, request):
@@ -240,9 +246,12 @@ class BigQueryContactAdmin(ModelAdmin):
     def full_name_display(self, obj):
         name = self.truncate_text(obj.full_name.title() if obj.full_name else "-")
         return format_html(
-                '<strong>{}</strong>',
-                name
-            )
+            '<div class="row-selector" data-id="{}" style="cursor: pointer;">'
+            '<strong>{}</strong>'
+            '</div>',
+            obj.id,
+            name
+        )
     full_name_display.short_description = 'Full Name'
 
     def job_title_display(self, obj):
@@ -375,13 +384,12 @@ class BigQueryContactAdmin(ModelAdmin):
     list_filter_submit = True
 
     list_per_page = 50
-    list_display_links = None  # This removes the clickable links
     
     def has_add_permission(self, request):
         return False
 
     def has_change_permission(self, request, obj=None):
-        return False
+        return True
 
     def has_delete_permission(self, request, obj=None):
         return False
@@ -459,8 +467,26 @@ class BigQueryContactAdmin(ModelAdmin):
 
     class Media:
         css = {
-            'all': ('admin/css/custom_admin.css',)
+            'all': (
+                'admin/css/custom_admin.css',
+                'admin/css/vendor/select2/select2.css',
+                'admin/css/autocomplete.css',
+            )
         }
+        js = (
+            'admin/js/vendor/jquery/jquery.js',
+            'admin/js/vendor/select2/select2.full.js',
+            'admin/js/jquery.init.js',
+            'admin/js/core.js',
+            '/jsi18n/',
+            'unfold/js/select2.init.js',
+            'admin/js/admin/RelatedObjectLookups.js',
+            'admin/js/actions.js',
+            'admin/js/urlify.js',
+            'admin/js/prepopulate.js',
+            'admin/js/vendor/xregexp/xregexp.js',
+            'admin/js/row_selection.js',
+        )
 
 # Register the model and its admin
 admin.site.register(BigQueryContact, BigQueryContactAdmin)
