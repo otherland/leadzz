@@ -1,0 +1,43 @@
+/* High contrast pagination styling */
+#submit-row .flex-row a {
+    padding: 0.5rem 1rem !important;
+    margin: 0 0.25rem !important;
+    font-size: 1.125rem !important;
+    font-weight: 500 !important;
+    border-radius: 0.375rem !important;
+    color: var(--primary-600) !important;
+    background: var(--primary-50) !important;
+    text-decoration: none !important;
+}
+
+/* Current page number */
+#submit-row .flex-row .font-medium.text-primary-600 {
+    padding: 0.5rem 1rem !important;
+    margin: 0 0.25rem !important;
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    border-radius: 0.375rem !important;
+    color: white !important;
+    background: var(--primary-600) !important;
+    display: inline-block !important;
+}
+
+/* Ellipsis */
+#submit-row .flex-row .text-base-400 {
+    padding: 0.5rem 0.5rem !important;
+    font-size: 1.125rem !important;
+    font-weight: 500 !important;
+}
+
+/* Hover state for links */
+#submit-row .flex-row a:hover {
+    background: var(--primary-100) !important;
+    color: var(--primary-700) !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+/* Container spacing */
+#submit-row .flex-row {
+    gap: 0.5rem !important;
+    padding: 0.5rem 0 !important;
+} 

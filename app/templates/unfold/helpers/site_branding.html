@@ -1,0 +1,9 @@
+<h1 id="site-name">
+    {% if site_dropdown %}
+        {{ site_header|default:_('Django administration') }}
+    {% else %}
+        <a href="/">
+            {{ site_header|default:_('Django administration') }}
+        </a>
+    {% endif %}
+</h1>

@@ -1,0 +1,8 @@
+Hello from {{ current_site.name }}!
+
+You're receiving this e-mail because user {{ user.email }} has given this as their email address to connect their account.
+
+To confirm this is correct, go to {{ activate_url }}
+
+Thank you!
+{{ current_site.name }}

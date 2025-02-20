@@ -1,0 +1,119 @@
+/* Prevent wrapping and set column widths */
+#result_list td, #result_list th {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Custom widths for specific columns */
+#result_list .field-company_logo_display {
+    width: 60px;
+    min-width: 60px;
+}
+
+#result_list .field-full_name_display {
+    width: 150px;
+    min-width: 150px;
+}
+
+#result_list .field-business_email {
+    width: 200px;
+    min-width: 200px;
+}
+
+#result_list .field-additional_personal_emails {
+    width: 200px;
+    min-width: 200px;
+}
+
+#result_list .field-company_name {
+    width: 150px;
+    min-width: 150px;
+}
+
+#result_list .field-company_domain {
+    width: 150px;
+    min-width: 150px;
+}
+
+#result_list .field-company_linkedin_url {
+    width: 200px;
+    min-width: 200px;
+}
+
+#result_list .field-job_title {
+    width: 150px;
+    min-width: 150px;
+}
+
+#result_list .field-industry_name {
+    width: 120px;
+    min-width: 120px;
+}
+
+#result_list .field-company_country_name {
+    width: 120px;
+    min-width: 120px;
+}
+
+#result_list .field-employees_range {
+    width: 120px;
+    min-width: 120px;
+}
+
+#result_list .field-mobile_phone,
+#result_list .field-personal_phone,
+#result_list .field-company_phone {
+    width: 120px;
+    min-width: 120px;
+}
+
+#result_list .field-people_in_company {
+    width: 100px;
+    min-width: 100px;
+}
+
+/* Keep description scrollable but with fixed width */
+#result_list .field-description_display {
+    width: 300px;
+    min-width: 300px;
+}
+
+/* Add tooltips for truncated text */
+#result_list td {
+    position: relative;
+}
+
+#result_list td:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: 0;
+    top: 100%;
+    z-index: 1000;
+    background: #333;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    white-space: normal;
+    max-width: 300px;
+    display: none;
+}
+
+#result_list td[title]:hover::after {
+    display: block;
+}
+
+#result_list .field-company_linkedin_url_display {
+    width: 50px;
+    min-width: 50px;
+    text-align: center;
+} 
+
+
+.w-sidebar {
+    width: 12rem !important;
+}
+
+.min-w-sidebar {
+    min-width: 12rem !important;
+}

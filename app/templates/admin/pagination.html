@@ -1,0 +1,57 @@
+{% load i18n admin_list %}
+
+<div id="submit-row" class="relative z-20">
+    <div class="max-w-full lg:bottom-0 lg:fixed lg:left-0 lg:right-0 xl:left-72" x-bind:class="{'xl:left-0': !sidebarDesktopOpen, 'xl:left-72': sidebarDesktopOpen}" x-bind:style="'width: ' + mainWidth + 'px'">
+        <div class="lg:backdrop-blur-sm lg:bg-white/80 lg:flex lg:items-center lg:dark:bg-base-900/80 lg:border-t lg:border-base-200 lg:h-[71px] lg:py-2 lg:relative lg:scrollable-top lg:px-8 lg:dark:border-base-800">
+            <div class="flex flex-row items-center lg:mx-auto" x-bind:style="'width: ' + changeListWidth + 'px'">
+                {% if pagination_required %}
+                    {# Previous Page Button #}
+                    {% if cl.page_num > 1 %}
+                        <div class="pr-4">
+                            <a href="{{ cl.get_query_string|default:"?" }}p={{ cl.page_num|add:"-1" }}" 
+                               class="flex items-center text-primary-600 hover:bg-primary-50 px-3 py-2 rounded-md text-lg">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                                {% trans "Previous" %}
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    {# Page Numbers #}
+                    {% for i in page_range %}
+                        <div class="{% if forloop.last %}pr-2{% else %}pr-4{% endif %}">
+                            {% if i == cl.page_num %}
+                                <span class="bg-primary-600 text-white px-3 py-2 rounded-md text-lg">
+                                    {{ i }}
+                                </span>
+                            {% elif i == "." %}
+                                <span class="text-base-400 px-2 text-lg">
+                                    …
+                                </span>
+                            {% else %}
+                                <a href="{{ cl.get_query_string|default:"?" }}p={{ i }}" 
+                                   class="hover:bg-primary-50 px-3 py-2 rounded-md text-lg"
+                                   {% if forloop.last %}class="end"{% endif %}>{{ i }}</a> 
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    {# Next Page Button #}
+                    {% if cl.page_num < cl.paginator.num_pages %}
+                        <div class="pr-4">
+                            <a href="{{ cl.get_query_string|default:"?" }}p={{ cl.page_num|add:"1" }}" 
+                               class="flex items-center text-primary-600 hover:bg-primary-50 px-3 py-2 rounded-md text-lg">
+                                {% trans "Next" %}
+                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </a>
+                        </div>
+                    {% endif %}
+
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
