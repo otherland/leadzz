@@ -7,7 +7,7 @@ from datetime import timedelta
 logger = logging.getLogger(__name__)
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./pro-hour-450500-v1-1e44b3cf5db5.json"
-BIGQUERY_TABLE_ID = "pro-hour-450500-v1.apollo.listkit_contacts"
+BIGQUERY_TABLE_ID = "pro-hour-450500-v1.apollo.listkit_contacts_optimized"
 
 def fetch_contacts(filters=None, limit=50, offset=0, order_by=None):
     # Create a cache key based on the query parameters
@@ -29,11 +29,9 @@ def fetch_contacts(filters=None, limit=50, offset=0, order_by=None):
     
     base_query = f"""
     SELECT 
-        id, full_name, business_email, additional_personal_emails, company_name, 
-        job_title, industry_name, company_country_name, company_size, 
-        employees_range, mobile_phone, personal_phone, company_phone, 
-        company_domain, linkedin_url, company_linkedin_url, company_logo, description,
-        created_at, updated_at 
+        full_name, company_name, job_title, industry_name,
+        company_country_name, employees_range, company_domain,
+        linkedin_url, company_linkedin_url, company_logo, description
     FROM `{BIGQUERY_TABLE_ID}`
     WHERE 1=1
     """
@@ -41,25 +39,23 @@ def fetch_contacts(filters=None, limit=50, offset=0, order_by=None):
     query_params = []
     
     if filters:
+        # Optimize the filter conditions
+        filter_conditions = []
         for field, values in filters.items():
             if isinstance(values, list):
-                # Handle multiple values for the same field with OR
-                conditions = [f"{field} = @{field}_{i}" for i in range(len(values))]
-                base_query += f" AND ({' OR '.join(conditions)})"
+                # Use IN clause for multiple values instead of multiple OR conditions
+                placeholders = [f"@{field}_{i}" for i in range(len(values))]
+                filter_conditions.append(f"{field} IN ({', '.join(placeholders)})")
                 for i, value in enumerate(values):
                     query_params.append(bigquery.ScalarQueryParameter(f"{field}_{i}", "STRING", value))
             else:
-                # Handle single value
-                base_query += f" AND {field} = @{field}"
+                filter_conditions.append(f"{field} = @{field}")
                 query_params.append(bigquery.ScalarQueryParameter(field, "STRING", values))
+        
+        if filter_conditions:
+            base_query += f" AND {' AND '.join(filter_conditions)}"
 
-    # Add ORDER BY clause
-    if order_by:
-        base_query += f" ORDER BY {order_by}"
-    else:
-        base_query += " ORDER BY created_at DESC"  # Default ordering
-
-    # Add LIMIT and OFFSET
+    # Simplified ordering
     base_query += f" LIMIT @limit OFFSET @offset"
     query_params.extend([
         bigquery.ScalarQueryParameter("limit", "INT64", limit),
@@ -72,7 +68,10 @@ def fetch_contacts(filters=None, limit=50, offset=0, order_by=None):
     print(f"  Limit: {limit}, Offset: {offset}")
 
     try:
-        job_config = bigquery.QueryJobConfig(query_parameters=query_params)
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=query_params,
+            use_query_cache=True  # Explicitly enable query cache
+        )
         query_job = client.query(base_query, job_config=job_config)
         results = query_job.result()
         result_list = [dict(row.items()) for row in results]
@@ -87,16 +86,14 @@ def fetch_contacts(filters=None, limit=50, offset=0, order_by=None):
         logger.error(f"BigQuery error: {str(e)}", exc_info=True)
         raise
 
-def get_unique_values(field_name, limit=None):
-    """Get unique values for a field from BigQuery with caching"""
-    cache_key = f'bigquery_unique_{field_name}'
+def get_unique_values(field_name, limit=1000):
+    """Get unique values for a field with caching"""
+    cache_key = f'unique_values_{field_name}'
     cached_values = cache.get(cache_key)
     
     if cached_values is not None:
-        print(f"DEBUG: Using cached values for {field_name}")
-        return cached_values[:limit] if limit else cached_values
-        
-    print(f"DEBUG: Fetching unique values for {field_name} from BigQuery")
+        return cached_values
+
     client = bigquery.Client()
     
     query = f"""
@@ -104,17 +101,95 @@ def get_unique_values(field_name, limit=None):
     FROM `{BIGQUERY_TABLE_ID}`
     WHERE {field_name} IS NOT NULL
     ORDER BY {field_name}
+    LIMIT @limit
     """
     
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("limit", "INT64", limit)
+        ],
+        use_query_cache=True
+    )
+
     try:
-        query_job = client.query(query)
+        query_job = client.query(query, job_config=job_config)
         results = query_job.result()
-        values = [row[field_name] for row in results]
         
-        # Cache for 24 hours
-        cache.set(cache_key, values, timeout=86400)  # 24 hours in seconds
+        # Extract values and filter out None/empty
+        values = [row[field_name] for row in results if row[field_name]]
         
-        return values[:limit] if limit else values
+        # Cache for 1 hour (3600 seconds)
+        cache.set(cache_key, values, timeout=3600)
+        
+        return values
     except Exception as e:
-        logger.error(f"Error fetching unique values for {field_name}: {str(e)}", exc_info=True)
+        logger.error(f"BigQuery error in get_unique_values: {str(e)}", exc_info=True)
         return []
+
+def get_filtered_count(filters=None):
+    """Get total count of contacts matching the filters"""
+    if not filters:
+        cache_key = 'contacts_count_total'
+    else:
+        # Create a stable cache key from the filters
+        filter_items = []
+        for k, v in sorted(filters.items()):
+            if isinstance(v, list):
+                filter_items.extend((k, item) for item in sorted(v))
+            else:
+                filter_items.append((k, v))
+        cache_key = f'contacts_count_{"_".join(str(x) for x in filter_items)}'
+    
+    # Try to get cached count
+    cached_count = cache.get(cache_key)
+    if cached_count is not None:
+        return cached_count
+
+    client = bigquery.Client()
+    
+    count_query = f"""
+    SELECT COUNT(1) as total
+    FROM `{BIGQUERY_TABLE_ID}`
+    WHERE 1=1
+    """
+
+    query_params = []
+    
+    if filters:
+        filter_conditions = []
+        for field, values in filters.items():
+            if isinstance(values, list) and values:
+                values = [v for v in values if v]  # Remove empty values
+                if values:  # Only add condition if we have values
+                    placeholders = [f"@{field}_{i}" for i in range(len(values))]
+                    filter_conditions.append(f"{field} IN ({', '.join(placeholders)})")
+                    for i, value in enumerate(values):
+                        query_params.append(bigquery.ScalarQueryParameter(f"{field}_{i}", "STRING", value))
+            elif values:  # Single non-empty value
+                filter_conditions.append(f"{field} = @{field}")
+                query_params.append(bigquery.ScalarQueryParameter(field, "STRING", values))
+        
+        if filter_conditions:
+            count_query += f" AND {' AND '.join(filter_conditions)}"
+
+    print(f"\nDEBUG Count Query: {count_query}")
+    print(f"DEBUG Count Params: {query_params}")
+
+    try:
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=query_params,
+            use_query_cache=True
+        )
+        query_job = client.query(count_query, job_config=job_config)
+        result = next(query_job.result())
+        total_count = result.total
+        
+        print(f"DEBUG Count Result: {total_count} for filters: {filters}")
+        
+        # Cache the count for 5 minutes
+        cache.set(cache_key, total_count, timeout=300)
+        
+        return total_count
+    except Exception as e:
+        logger.error(f"BigQuery count error: {str(e)}", exc_info=True)
+        return 0

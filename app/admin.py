@@ -1,6 +1,6 @@
 from django.utils.html import format_html
 from django.contrib import admin
-from .bigquery import fetch_contacts, get_unique_values
+from .bigquery import fetch_contacts, get_unique_values, get_filtered_count
 from django.db import models
 import logging
 from django.core.paginator import Paginator
@@ -103,33 +103,22 @@ class EmployeesRangeFilter(BaseMultipleFilter):
         return cached_values
 
 class BigQueryContact(models.Model):
-    id = models.CharField(max_length=255, primary_key=True)
     full_name = models.CharField(max_length=255)
-    business_email = models.TextField()
-    additional_personal_emails = models.TextField()
     company_name = models.CharField(max_length=255)
     job_title = models.CharField(max_length=255)
     industry_name = models.CharField(max_length=255)
     company_country_name = models.CharField(max_length=255)
-    company_size = models.CharField(max_length=255)
     employees_range = models.CharField(max_length=255)
-    mobile_phone = models.CharField(max_length=255)
-    personal_phone = models.CharField(max_length=255)
-    company_phone = models.CharField(max_length=255)
-    created_at = models.DateTimeField()
-    updated_at = models.DateTimeField()
     company_domain = models.TextField()
-    company_linkedin_url = models.TextField()
     linkedin_url = models.TextField()
+    company_linkedin_url = models.TextField()
     company_logo = models.TextField()
     description = models.TextField()
 
     class Meta:
         managed = False
         app_label = 'app'
-        db_table = None  # Important: this tells Django there's no actual table
-        verbose_name = 'Contact'
-        verbose_name_plural = 'Contacts'
+        db_table = None
 
     def __str__(self):
         return f"{self.full_name}"
@@ -194,15 +183,10 @@ class BigQueryContactAdmin(ModelAdmin):
         'company_logo_display',
         'company_name_display',
         'job_title_display',
-        'business_email_display',
-        'mobile_phone_display',
-        'personal_phone_display',
-        'additional_personal_emails_display',
         'industry_name_display',
         'company_linkedin_url_display',
         'company_domain_display',
         'linkedin_url_display',
-        'company_phone_display',
         'company_country_name_display',
         'employees_range',
         'description_display',
@@ -312,17 +296,6 @@ class BigQueryContactAdmin(ModelAdmin):
             return format_html('<img src="{}" width="50" height="50" style="object-fit: contain;" />', obj.company_logo)
         return "-"
     
-    def additional_personal_emails_display(self, obj):
-        if not obj.additional_personal_emails:
-            return ""
-        try:
-            emails = eval(obj.additional_personal_emails) if isinstance(obj.additional_personal_emails, str) else obj.additional_personal_emails
-            masked_emails = [self.mask_email(email) for email in emails]
-            full_text = ", ".join(masked_emails)
-            return self.truncate_text(full_text)
-        except:
-            return ""
-    additional_personal_emails_display.short_description = 'Other Emails'
 
     def mask_email(self, email):
         if not email:
@@ -343,20 +316,8 @@ class BigQueryContactAdmin(ModelAdmin):
             return f"{clean_phone[0]}{'*' * 8}{clean_phone[-2:]}"
         return f"{'*' * len(clean_phone)}"
 
-    def business_email_display(self, obj):
-        return self.mask_email(obj.business_email)
-
-    def mobile_phone_display(self, obj):
-        return self.mask_phone(obj.mobile_phone)
-
-    def company_phone_display(self, obj):
-        return self.mask_phone(obj.company_phone)
-
-    def personal_phone_display(self, obj):
-        return self.mask_phone(obj.personal_phone)
-
     search_fields = (
-        'full_name', 'business_email', 'additional_personal_emails',
+        'full_name',
         'company_name', 'job_title', 'industry_name'
     )
 
@@ -365,14 +326,9 @@ class BigQueryContactAdmin(ModelAdmin):
     company_logo_display.short_description = ''
     company_linkedin_url_display.short_description = 'Company LinkedIn'
     linkedin_url_display.short_description = 'Person LinkedIn'
-    company_phone_display.short_description = 'Company Phone'
     description_display.short_description = 'Description'
 
     full_name_display.short_description = 'Name'
-    business_email_display.short_description = 'Email'
-    mobile_phone_display.short_description = 'Mobile'
-    personal_phone_display.short_description = 'Personal'
-    additional_personal_emails_display.short_description = 'Other Emails'
 
     list_filter = (
         IndustryFilter,
@@ -451,19 +407,60 @@ class BigQueryContactAdmin(ModelAdmin):
 
     def get_paginator(self, request, queryset, per_page, orphans=0, allow_empty_first_page=True):
         paginator = Paginator(queryset, per_page)
-        paginator.count = 7000000
+        
+        # Extract active filters from request
+        filters = {}
+        for filter_key in ['industry_name', 'company_country_name', 'employees_range']:
+            filter_values = request.GET.getlist(filter_key)
+            if filter_values and filter_values[0]:  # Check if the filter value isn't empty
+                filters[filter_key] = filter_values
+
+        # If we have active filters, get filtered count, otherwise get total count
+        if filters:
+            filtered_count = get_filtered_count(filters)
+            print(f"DEBUG: Filtered count with filters {filters}: {filtered_count}")
+            paginator.count = filtered_count
+        else:
+            total_count = get_filtered_count(None)
+            print(f"DEBUG: Total count (no filters): {total_count}")
+            paginator.count = total_count
+
         return paginator
 
     def changelist_view(self, request, extra_context=None):
-        print("DEBUG: Entering changelist_view")
-        try:
-            response = super().changelist_view(request, extra_context=extra_context)
-            print("DEBUG: Successfully generated changelist view")
-            return response
-        except Exception as e:
-            print(f"DEBUG: Error in changelist_view: {str(e)}")
-            logger.error(f"Error in changelist_view: {str(e)}", exc_info=True)
-            raise
+        extra_context = extra_context or {}
+        
+        # Get active filters
+        filters = {}
+        for filter_key in ['industry_name', 'company_country_name', 'employees_range']:
+            values = request.GET.getlist(filter_key)
+            if values and any(v for v in values):  # Only add non-empty values
+                filters[filter_key] = values
+
+        print(f"\nDEBUG Admin Filters: {filters}")
+
+        if filters:
+            # Get both filtered and total counts
+            filtered_count = get_filtered_count(filters)
+            total_count = get_filtered_count(None)
+            
+            print(f"DEBUG Admin Counts - Filtered: {filtered_count}, Total: {total_count}")
+            
+            extra_context.update({
+                'filtered': True,
+                'total_count': total_count,
+                'filter_count': filtered_count,
+                'filter_message': f'Found {filtered_count:,} contacts (filtered from {total_count:,} total)'
+            })
+        else:
+            total_count = get_filtered_count(None)
+            extra_context.update({
+                'filtered': False,
+                'total_count': total_count,
+                'filter_message': f'Found {total_count:,} total contacts'
+            })
+
+        return super().changelist_view(request, extra_context=extra_context)
 
     class Media:
         css = {

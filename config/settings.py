@@ -69,7 +69,7 @@ TEMPLATES = [
         ],
         'APP_DIRS': True,
         'OPTIONS': {
-            'debug': True,  # Add this line
+            # 'debug': True,  # Add this line
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
@@ -167,24 +167,6 @@ EMAIL_HOST_PASSWORD = 'your-password'
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # or 'optional' or 'none'
 LOGIN_REDIRECT_URL = '/admin/'  # Where to redirect after successful login
 ACCOUNT_LOGOUT_REDIRECT_URL = '/admin/'  # Where to redirect after logout
-
-TEMPLATES[0]['OPTIONS']['debug'] = True
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django.template': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-        },
-    },
-}
 
 UNFOLD = {
     "SITE_TITLE": "Leadzz",
