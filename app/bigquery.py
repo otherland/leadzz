@@ -3,10 +3,32 @@ import os
 from google.cloud import bigquery
 from django.core.cache import cache
 from datetime import timedelta
+import json
 
 logger = logging.getLogger(__name__)
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./pro-hour-450500-v1-1e44b3cf5db5.json"
+credentials_file = "./pro-hour-450500-v1-1e44b3cf5db5.json"
+
+# Check if credentials file exists first
+if os.path.exists(credentials_file):
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_file
+# Fall back to environment variables if file doesn't exist
+elif not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+    credentials_dict = {
+        "type": "service_account",
+        "project_id": os.getenv("GOOGLE_PROJECT_ID"),
+        "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID"),
+        "private_key": os.getenv("GOOGLE_PRIVATE_KEY", "").replace("\\n", "\n"),
+        "client_email": os.getenv("GOOGLE_CLIENT_EMAIL"),
+        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": os.getenv("GOOGLE_CLIENT_X509_CERT_URL")
+    }
+    
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"] = json.dumps(credentials_dict)
+
 BIGQUERY_TABLE_ID = "pro-hour-450500-v1.apollo.listkit_contacts_optimized"
 
 def fetch_contacts(filters=None, limit=50, offset=0, order_by=None):
