@@ -90,10 +90,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'postgresql://my_saas_user:mypassword@localhost:5432/my_saas_db'),
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',  # Ensure this matches your actual database name
+        'USER': 'postgres',  # Ensure this matches your actual database user
+        'PASSWORD': 'ZOFiPzLwYQExrvZGosndbPbhovLFCFUj',  # Ensure this is set correctly
+        'HOST': 'shortline.proxy.rlwy.net',  # Use the public proxy host
+        'PORT': '47804',  # Use the public proxy port
+    }
 }
 
 DATABASE_ROUTERS = ['app.routers.BigQueryRouter']
@@ -204,3 +208,7 @@ UNFOLD = {
         ],
     },
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://leadzz-production.up.railway.app',
+]
