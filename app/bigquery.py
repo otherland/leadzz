@@ -51,6 +51,7 @@ def fetch_contacts(filters=None, limit=50, offset=0, order_by=None):
     
     base_query = f"""
     SELECT 
+        contact_id,
         full_name, company_name, job_title, industry_name,
         company_country_name, employees_range, company_domain,
         linkedin_url, company_linkedin_url, company_logo, description
@@ -150,7 +151,9 @@ def get_unique_values(field_name, limit=1000):
 
 def get_filtered_count(filters=None):
     """Get total count of contacts matching the filters"""
+    
     if not filters:
+        return 6015458
         cache_key = 'contacts_count_total'
     else:
         # Create a stable cache key from the filters

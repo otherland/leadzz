@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-+hed&-k3i%ni(v&7wrupgx@kcv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') or ['*']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,localhost:8000').split(',')
 
 
 # Application definition
@@ -58,7 +58,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    'app.middleware.AdminAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -165,8 +164,9 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-password')
 
 # Additional allauth settings
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # or 'optional' or 'none'
-LOGIN_REDIRECT_URL = '/admin/'  # Where to redirect after successful login
-ACCOUNT_LOGOUT_REDIRECT_URL = '/admin/'  # Where to redirect after logout
+LOGIN_REDIRECT_URL = '/admin/'  # Change from '/admin/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/accounts/login/'  # Change from '/admin/'
+LOGIN_URL = '/accounts/login/'  # Add this line to specify the login URL
 
 UNFOLD = {
     "SITE_TITLE": "Leadzz",
@@ -176,9 +176,16 @@ UNFOLD = {
             {
                 "items": [
                     {
+                        "title": _("Contact Lists"),
+                        "icon": "list",
+                        "link": "/admin/app/contactlist/",
+                        "permission": lambda request: request.user.has_perm('app.view_contactlist'),
+                    },
+                    {
                         "title": _("Contacts"),
-                        "icon": "contact_page",
-                        "link": "/contacts/",
+                        "icon": "person",
+                        "link": "/admin/app/contact/",
+                        "permission": lambda request: request.user.has_perm('app.view_contact'),
                     },
                 ],
             },

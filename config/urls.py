@@ -16,15 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from app.views import ContactsView
 from django.urls import path
 from django.views.i18n import JavaScriptCatalog
-
+from app.admin import ContactAdmin
 urlpatterns = [
-    path('contacts/', ContactsView.as_view(), name='contacts'),
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='javascript-catalog'),
-
+    path('admin/app/contact/filter-by-list/<int:list_id>/', ContactAdmin.filter_by_list, name='filter-by-list'),
 ]
 

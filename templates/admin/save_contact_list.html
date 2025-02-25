@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block content %}
+<form action="" method="post">{% csrf_token %}
+    <div>
+        <p>Enter a title for this contact list:</p>
+        <input type="text" name="title" required>
+        
+        {% for obj in queryset %}
+        <input type="hidden" name="_selected_action" value="{{ obj.id }}">
+        {% endfor %}
+        
+        <input type="hidden" name="action" value="export_selected_contacts">
+        <input type="hidden" name="apply" value="true">
+        
+        <div style="margin-top: 20px;">
+            <input type="submit" value="Save contact list">
+            <a href="#" onclick="window.history.back(); return false;" class="button cancel-link">Cancel</a>
+        </div>
+    </div>
+</form>
+{% endblock %} 
