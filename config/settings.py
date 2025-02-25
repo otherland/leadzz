@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgresql://my_saas_user:mypassword@localhost:5432/my_saas_db',
+        default=os.getenv('DATABASE_URL', 'postgresql://my_saas_user:mypassword@localhost:5432/my_saas_db'),
         conn_max_age=600
     )
 }
